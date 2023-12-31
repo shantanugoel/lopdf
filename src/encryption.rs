@@ -129,7 +129,13 @@ where
     key.extend_from_slice(file_id_0);
 
     // 3.2.6 Revision >=4
-    if revision >= 4 {
+    // EncryptMetadata key may not be present in the trailer. Default value to be assumed as true
+    let encrypt_metadata = doc.trailer.get(b"EncryptMetadata")
+        .unwrap_or(&Object::Boolean(true))
+        .as_bool()
+        .map_err(|_| DecryptionError::InvalidType)?;
+
+    if revision >= 4 && !encrypt_metadata{
         key.extend_from_slice(&[0xFF_u8, 0xFF, 0xFF, 0xFF]);
     }
 
