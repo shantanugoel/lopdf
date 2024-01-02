@@ -258,6 +258,7 @@ impl Document {
     pub fn decrypt<P: AsRef<[u8]>>(&mut self, password: P) -> Result<()> {
         // Find the ID of the encryption dict; we'll want to skip it when decrypting
         let encryption_obj_id = self.trailer.get(b"Encrypt").and_then(Object::as_reference)?;
+        println!("{:?}", encryption_obj_id);
 
         // Since PDF 1.5, metadata may or may not be encrypted; defaults to true
         let metadata_is_encrypted = self
@@ -268,47 +269,48 @@ impl Document {
             .unwrap_or(true);
 
         let key = encryption::get_encryption_key(self, &password, true)?;
-        for (&id, obj) in self.objects.iter_mut() {
-            // The encryption dictionary is not encrypted, leave it alone
-            if id == encryption_obj_id {
-                continue;
-            }
+        // for (&id, obj) in self.objects.iter_mut() {
+        //     // The encryption dictionary is not encrypted, leave it alone
+        //     if id == encryption_obj_id {
+        //         continue;
+        //     }
 
-            // If a Metadata stream but metadata isn't encrypted, leave it alone
-            if obj.type_name().unwrap_or("") == "Metadata" && !metadata_is_encrypted {
-                continue;
-            }
+        //     // If a Metadata stream but metadata isn't encrypted, leave it alone
+        //     // if obj.type_name().unwrap_or("") == "Metadata" && !metadata_is_encrypted {
+        //     //     continue;
+        //     // }
 
-            let decrypted = match encryption::decrypt_object(&key, id, &*obj) {
-                Ok(content) => content,
-                Err(encryption::DecryptionError::NotDecryptable) => {
-                    continue;
-                }
-                Err(_err) => {
-                    return Err(_err.into());
-                }
-            };
+        //     let decrypted = match encryption::decrypt_object(&key, id, &*obj) {
+        //         Ok(content) => content,
+        //         Err(encryption::DecryptionError::NotDecryptable) => {
+        //             continue;
+        //         }
+        //         Err(_err) => {
+        //             return Err(_err.into());
+        //         }
+        //     };
 
-            // Only strings and streams are encrypted
-            match obj {
-                Object::Stream(stream) => stream.set_content(decrypted),
-                Object::String(ref mut content, _) => *content = decrypted,
-                _ => {}
-            }
-        }
+        //     // Only strings and streams are encrypted
+        //     match obj {
+        //         Object::Stream(stream) => stream.set_content(decrypted),
+        //         Object::String(ref mut content, _) => *content = decrypted,
+        //         _ => {}
+        //     }
+        // }
 
-        if let Ok(info_obj_id) = self.trailer.get(b"Info").and_then(Object::as_reference) {
-            if let Ok(info_dict) = self.get_object_mut(info_obj_id).and_then(Object::as_dict_mut) {
-                for (_, info_obj) in info_dict.iter_mut() {
-                    if let Ok(content) = encryption::decrypt_object(&key, info_obj_id, &*info_obj) {
-                        info_obj.as_str_mut().unwrap().clear();
-                        info_obj.as_str_mut().unwrap().extend(content);
-                    };
-                }
-            }
-        }
+        // if let Ok(info_obj_id) = self.trailer.get(b"Info").and_then(Object::as_reference) {
+        //     if let Ok(info_dict) = self.get_object_mut(info_obj_id).and_then(Object::as_dict_mut) {
+        //         for (_, info_obj) in info_dict.iter_mut() {
+        //             if let Ok(content) = encryption::decrypt_object(&key, info_obj_id, &*info_obj) {
+        //                 info_obj.as_str_mut().unwrap().clear();
+        //                 info_obj.as_str_mut().unwrap().extend(content);
+        //             };
+        //         }
+        //     }
+        // }
 
-        self.trailer.remove(b"Encrypt");
+        // self.trailer.remove(b"Encrypt");
+        // self.trailer.remove(b"Metadata");
         Ok(())
     }
 

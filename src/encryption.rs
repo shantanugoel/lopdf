@@ -1,6 +1,8 @@
 use std::fmt;
 use crate::{Document, Object, ObjectId};
 use crate::rc4::Rc4;
+use aes::cipher::BlockEncryptMut;
+use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, KeyIvInit};
 
 #[derive(Debug)]
 pub enum DecryptionError {
@@ -80,7 +82,7 @@ where
                     .as_i64()
                     .map_err(|_| DecryptionError::InvalidType)?;
     // Currently only support V = 1 or 2
-    if !(1..=2).contains(&algorithm) {
+    if !(1..=4).contains(&algorithm) {
         return Err(DecryptionError::UnsupportedEncryption);
     }
 
@@ -89,7 +91,7 @@ where
                     .map_err(|_| DecryptionError::MissingRevision)?
                     .as_i64()
                     .map_err(|_| DecryptionError::InvalidType)?;
-    if !(2..=3).contains(&revision) {
+    if !(2..=4).contains(&revision) {
         return Err(DecryptionError::UnsupportedEncryption);
     }
 
@@ -218,9 +220,12 @@ where
     // and the lower 2 bytes of the generation number
     builder.extend_from_slice(&obj_id.1.to_le_bytes()[..2]);
 
+    builder.extend_from_slice(&[0x73, 0x41, 0x6C, 0x54]);
+
     // Now construct the rc4 key
     let key_len = std::cmp::min(key.len() + 5, 16);
-    let rc4_key = &md5::compute(builder)[..key_len];
+    // let rc4_key = &md5::compute(builder)[..key_len];
+    let rc4_key = &md5::compute(builder).0;
 
     let encrypted = match obj {
         Object::String(content, _) => content,
@@ -229,7 +234,23 @@ where
     };
 
     // Decrypt using the rc4 algorithm
-    Ok(Rc4::new(rc4_key).decrypt(encrypted))
+    // Ok(Rc4::new(rc4_key).decrypt(encrypted))
+    type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
+
+let mut iv = [0x00u8; 16];
+    for (elem, i) in encrypted.iter().zip(0..16) {
+        iv[i] = *elem;
+    }
+
+    let mut data = encrypted.clone();
+    if data.len() > 16 && data.len() % 16 == 0 {
+    let pt = Aes128CbcDec::new(rc4_key.into(), &iv.into())
+        .decrypt_padded_mut::<Pkcs7>(&mut data[16..])
+        .unwrap();
+    Ok(pt.to_vec()) }
+    else {
+        Ok([].to_vec())
+    }
 }
 
 #[cfg(test)]

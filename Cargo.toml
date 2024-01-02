@@ -16,12 +16,15 @@ repository = "https://github.com/J-F-Liu/lopdf.git"
 version = "0.31.0"
 
 [dependencies]
+aes = "0.8.3"
+cbc = "0.1.2"
 chrono = { version = "^0.4", optional = true, features = [
     "std",
     "clock",
 ], default-features = false }
 encoding_rs = "0.8.32"
 flate2 = "^1.0"
+hex = "0.4.3"
 image = { version = "^0.24", optional = true }
 itoa = "^1.0"
 linked-hash-map = "^0.5"
@@ -29,6 +32,7 @@ log = "^0.4"
 md5 = "0.7.0"
 nom = { version = "^7.1", optional = true }
 pom = { version = "^3.2", optional = true }
+rand = "0.8.5"
 rayon = { version = "^1.6", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
 time = { version = "^0.3", features = ["formatting", "parsing"] }
