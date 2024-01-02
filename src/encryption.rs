@@ -80,7 +80,7 @@ where
                     .as_i64()
                     .map_err(|_| DecryptionError::InvalidType)?;
     // Currently only support V = 1 or 2
-    if !(1..=2).contains(&algorithm) {
+    if !(1..=4).contains(&algorithm) {
         return Err(DecryptionError::UnsupportedEncryption);
     }
 
@@ -89,7 +89,7 @@ where
                     .map_err(|_| DecryptionError::MissingRevision)?
                     .as_i64()
                     .map_err(|_| DecryptionError::InvalidType)?;
-    if !(2..=3).contains(&revision) {
+    if !(2..=4).contains(&revision) {
         return Err(DecryptionError::UnsupportedEncryption);
     }
 
